@@ -163,7 +163,7 @@ function enterOrHighlight(state: GameState, value: number): GameState {
   const pencilMarks = { ...state.pencilMarks };
   delete pencilMarks[`${row},${col}`];
 
-  // Feature 3: clear pencil marks of 'value' from the same row and column
+  // Clear pencil marks of 'value' from the same row and column
   for (let i = 0; i < 9; i++) {
     const rowKey = `${row},${i}`;
     if (pencilMarks[rowKey]?.has(value)) {
@@ -284,7 +284,6 @@ function findConflicts(state: GameState): Set<string> {
   return conflicts;
 }
 
-// Feature 1: count how many times each digit appears in the user grid
 function countPlacedNumbers(state: GameState): Record<number, number> {
   const counts: Record<number, number> = {};
   for (let r = 0; r < 9; r++)
@@ -295,20 +294,30 @@ function countPlacedNumbers(state: GameState): Record<number, number> {
   return counts;
 }
 
-// Feature 4: collect cells that belong to rows/columns of every placed highlightedNumber
 function getCrossHighlightCells(state: GameState): Set<string> {
   const set = new Set<string>();
   const num = state.highlightedNumber;
   if (!num) return set;
   for (let r = 0; r < 9; r++)
     for (let c = 0; c < 9; c++)
-      if (state.userGrid[r][c] === num) {
-        for (let i = 0; i < 9; i++) {
-          set.add(`${r},${i}`);
-          set.add(`${i},${c}`);
-        }
-      }
+      if (state.userGrid[r][c] === num)
+        set.add(`${r},${c}`);
   return set;
+}
+
+// ─── Dark Mode ────────────────────────────────────────────────────────────────
+
+const DARK_MODE_KEY = 'sudoku-dark-mode';
+
+function loadDarkMode(): boolean {
+  const stored = localStorage.getItem(DARK_MODE_KEY);
+  if (stored !== null) return stored === 'true';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function applyDarkMode(dark: boolean): void {
+  document.documentElement.classList.toggle('dark', dark);
+  localStorage.setItem(DARK_MODE_KEY, String(dark));
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -324,7 +333,7 @@ function renderBoard(
   const crossHighlight = getCrossHighlightCells(state);
 
   const grid = document.createElement('div');
-  grid.className = 'grid grid-cols-9 border-2 border-gray-800 w-full aspect-square select-none';
+  grid.className = 'grid grid-cols-9 border-2 border-gray-800 dark:border-gray-400 w-full aspect-square select-none';
 
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
@@ -338,17 +347,17 @@ function renderBoard(
       const marks = state.pencilMarks[`${r},${c}`];
 
       const borderB = (r + 1) % 3 === 0 && r !== 8
-        ? 'border-b-2 border-b-gray-800'
-        : 'border-b border-b-gray-300';
+        ? 'border-b-2 border-b-gray-800 dark:border-b-gray-400'
+        : 'border-b border-b-gray-300 dark:border-b-gray-600';
       const borderR = (c + 1) % 3 === 0 && c !== 8
-        ? 'border-r-2 border-r-gray-800'
-        : 'border-r border-r-gray-300';
+        ? 'border-r-2 border-r-gray-800 dark:border-r-gray-400'
+        : 'border-r border-r-gray-300 dark:border-r-gray-600';
 
-      let bg = 'bg-white';
-      if (isSelected) bg = 'bg-blue-300';
-      else if (isSameRowCol) bg = 'bg-blue-100';
-      else if (isCrossHighlight) bg = 'bg-amber-100';
-      else if (isGiven) bg = 'bg-gray-50';
+      let bg = 'bg-white dark:bg-gray-800';
+      if (isSelected) bg = 'bg-blue-300 dark:bg-blue-700';
+      else if (isSameRowCol) bg = 'bg-blue-100 dark:bg-blue-900';
+      else if (isCrossHighlight) bg = 'bg-amber-100 dark:bg-amber-900';
+      else if (isGiven) bg = 'bg-gray-50 dark:bg-gray-700';
 
       cell.className = [
         'flex items-center justify-center relative cursor-pointer overflow-hidden',
@@ -359,20 +368,20 @@ function renderBoard(
       if (value !== 0) {
         const span = document.createElement('span');
         span.textContent = String(value);
-        // Feature 2: larger font so the number fills the cell
         const colorClass = isGiven
-          ? 'text-gray-900 font-bold'
+          ? 'text-gray-900 dark:text-gray-100 font-bold'
           : isConflict
-          ? 'text-red-600 font-semibold'
-          : 'text-blue-700 font-semibold';
-        span.className = `${colorClass} text-xl sm:text-2xl leading-none`;
+          ? 'text-red-600 dark:text-red-400 font-semibold'
+          : 'text-blue-700 dark:text-blue-400 font-semibold';
+        // Numbers sized to nearly fill the cell height
+        span.className = `${colorClass} leading-none text-[min(9vw,3rem)]`;
         cell.appendChild(span);
       } else if (marks && marks.size > 0) {
         const marksDiv = document.createElement('div');
         marksDiv.className = 'grid grid-cols-3 w-full h-full p-px gap-0';
         for (let i = 1; i <= 9; i++) {
           const mark = document.createElement('span');
-          mark.className = 'flex items-center justify-center text-gray-500 leading-none';
+          mark.className = 'flex items-center justify-center text-gray-500 dark:text-gray-400 leading-none';
           mark.style.fontSize = '0.45em';
           mark.textContent = marks.has(i) ? String(i) : '';
           marksDiv.appendChild(mark);
@@ -395,13 +404,11 @@ function renderControls(
   onTogglePencil: () => void,
   onUndo: () => void,
 ): HTMLElement {
-  // Feature 1: count placed numbers to know which to gray out
   const counts = countPlacedNumbers(state);
 
   const wrap = document.createElement('div');
   wrap.className = 'flex flex-col items-center gap-2 w-full';
 
-  // Number buttons grid
   const numGrid = document.createElement('div');
   numGrid.className = 'grid grid-cols-9 gap-1 w-full';
 
@@ -413,43 +420,41 @@ function renderControls(
     btn.className = [
       'flex items-center justify-center rounded border shadow-sm font-semibold text-lg h-10 sm:h-12 transition-colors',
       fullyPlaced
-        ? 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed'
-        : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50 active:bg-blue-100',
+        ? 'bg-gray-100 dark:bg-gray-700 text-gray-300 dark:text-gray-600 border-gray-200 dark:border-gray-600 cursor-not-allowed'
+        : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-blue-100 dark:active:bg-blue-900',
     ].join(' ');
     if (!fullyPlaced) btn.addEventListener('click', () => onNumber(n));
     numGrid.appendChild(btn);
   }
   wrap.appendChild(numGrid);
 
-  // Action buttons row
   const row = document.createElement('div');
   row.className = 'flex gap-2 w-full';
 
   const pencilBtn = document.createElement('button');
-  pencilBtn.textContent = '✏️ Pencil';
+  pencilBtn.textContent = 'Pencil';
   pencilBtn.className = [
     'flex-1 rounded py-2 font-medium text-sm border shadow-sm transition-colors',
     state.inputMode === 'pencil'
-      ? 'bg-yellow-300 border-yellow-500 text-yellow-900'
-      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50',
+      ? 'bg-yellow-300 dark:bg-yellow-700 border-yellow-500 dark:border-yellow-600 text-yellow-900 dark:text-yellow-100'
+      : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700',
   ].join(' ');
   pencilBtn.addEventListener('click', onTogglePencil);
 
   const eraseBtn = document.createElement('button');
-  eraseBtn.textContent = '⌫ Erase';
-  eraseBtn.className = 'flex-1 rounded py-2 font-medium text-sm border shadow-sm transition-colors bg-white border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-red-50';
+  eraseBtn.textContent = 'Erase';
+  eraseBtn.className = 'flex-1 rounded py-2 font-medium text-sm border shadow-sm transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-red-50 dark:active:bg-red-950';
   eraseBtn.addEventListener('click', onErase);
 
-  // Feature 5: undo button
   const canUndo = state.history.length > 0;
   const undoBtn = document.createElement('button');
-  undoBtn.textContent = '↩ Undo';
+  undoBtn.textContent = 'Undo';
   undoBtn.disabled = !canUndo;
   undoBtn.className = [
     'flex-1 rounded py-2 font-medium text-sm border shadow-sm transition-colors',
     canUndo
-      ? 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-orange-50'
-      : 'bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed',
+      ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-orange-50 dark:active:bg-orange-950'
+      : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-300 dark:text-gray-600 cursor-not-allowed',
   ].join(' ');
   if (canUndo) undoBtn.addEventListener('click', onUndo);
 
@@ -468,16 +473,31 @@ function formatTime(seconds: number): string {
 function renderHeader(
   state: GameState,
   bestTime: number | null,
+  isDark: boolean,
   onNewGame: () => void,
   onDifficulty: (d: Difficulty) => void,
+  onToggleDark: () => void,
 ): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'flex flex-col gap-3 w-full';
 
+  // Title row with dark-mode toggle pinned to the right
+  const titleRow = document.createElement('div');
+  titleRow.className = 'relative flex items-center justify-center';
+
   const title = document.createElement('h1');
   title.textContent = 'Sudoku';
-  title.className = 'text-2xl font-bold text-gray-800 text-center tracking-tight';
-  wrap.appendChild(title);
+  title.className = 'text-2xl font-bold text-gray-800 dark:text-gray-100 tracking-tight';
+
+  const darkBtn = document.createElement('button');
+  darkBtn.textContent = isDark ? '☀️' : '🌙';
+  darkBtn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+  darkBtn.className = 'absolute right-0 text-xl p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors';
+  darkBtn.addEventListener('click', onToggleDark);
+
+  titleRow.appendChild(title);
+  titleRow.appendChild(darkBtn);
+  wrap.appendChild(titleRow);
 
   const diffRow = document.createElement('div');
   diffRow.className = 'flex gap-1 w-full';
@@ -488,7 +508,7 @@ function renderHeader(
       'flex-1 py-1.5 rounded text-sm font-semibold border transition-colors',
       d === state.difficulty
         ? 'bg-blue-600 text-white border-blue-700'
-        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50',
+        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700',
     ].join(' ');
     btn.addEventListener('click', () => { if (d !== state.difficulty) onDifficulty(d); });
     diffRow.appendChild(btn);
@@ -502,10 +522,10 @@ function renderHeader(
   timerWrap.className = 'flex flex-col items-center';
   const timerLabel = document.createElement('span');
   timerLabel.textContent = 'Time';
-  timerLabel.className = 'text-xs text-gray-500 uppercase tracking-wide';
+  timerLabel.className = 'text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide';
   const timerVal = document.createElement('span');
   timerVal.textContent = formatTime(state.timerSeconds);
-  timerVal.className = 'text-xl font-mono font-bold text-gray-800';
+  timerVal.className = 'text-xl font-mono font-bold text-gray-800 dark:text-gray-100';
   timerVal.dataset.timer = '';
   timerWrap.appendChild(timerLabel);
   timerWrap.appendChild(timerVal);
@@ -519,10 +539,10 @@ function renderHeader(
   bestWrap.className = 'flex flex-col items-center';
   const bestLabel = document.createElement('span');
   bestLabel.textContent = 'Best';
-  bestLabel.className = 'text-xs text-gray-500 uppercase tracking-wide';
+  bestLabel.className = 'text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide';
   const bestVal = document.createElement('span');
   bestVal.textContent = bestTime === null ? '--:--' : formatTime(bestTime);
-  bestVal.className = 'text-xl font-mono font-bold text-gray-400';
+  bestVal.className = 'text-xl font-mono font-bold text-gray-400 dark:text-gray-500';
   bestWrap.appendChild(bestLabel);
   bestWrap.appendChild(bestVal);
 
@@ -543,7 +563,7 @@ function renderCompletionModal(
   overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
 
   const card = document.createElement('div');
-  card.className = 'bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 mx-4 max-w-sm w-full';
+  card.className = 'bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 mx-4 max-w-sm w-full';
 
   const emoji = document.createElement('div');
   emoji.textContent = '🎉';
@@ -551,15 +571,15 @@ function renderCompletionModal(
 
   const heading = document.createElement('h2');
   heading.textContent = 'Puzzle Solved!';
-  heading.className = 'text-2xl font-bold text-gray-800';
+  heading.className = 'text-2xl font-bold text-gray-800 dark:text-gray-100';
 
   const timeP = document.createElement('p');
   timeP.textContent = `Your time: ${formatTime(seconds)}`;
-  timeP.className = 'text-lg font-mono text-gray-600';
+  timeP.className = 'text-lg font-mono text-gray-600 dark:text-gray-300';
 
   const bestP = document.createElement('p');
   bestP.textContent = isNewBest ? '🏆 New best time!' : '';
-  bestP.className = 'text-yellow-600 font-semibold text-sm';
+  bestP.className = 'text-yellow-600 dark:text-yellow-400 font-semibold text-sm';
 
   const btn = document.createElement('button');
   btn.textContent = 'New Game';
@@ -607,15 +627,25 @@ const appEl = document.getElementById('app')!;
 let gameState = initGame('easy');
 let bestTimes = loadBestTimes();
 let stopTimer: (() => void) | null = null;
+let isDarkMode = loadDarkMode();
+
+applyDarkMode(isDarkMode);
 
 function render(): void {
   appEl.innerHTML = '';
 
   const page = document.createElement('div');
-  page.className = 'min-h-screen bg-gray-100 flex flex-col items-center justify-start px-4 py-4 gap-4';
+  page.className = 'min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-start px-4 py-4 gap-4';
 
   page.appendChild(
-    renderHeader(gameState, bestTimes[gameState.difficulty], () => startGame(gameState.difficulty), d => startGame(d))
+    renderHeader(
+      gameState,
+      bestTimes[gameState.difficulty],
+      isDarkMode,
+      () => startGame(gameState.difficulty),
+      d => startGame(d),
+      () => { isDarkMode = !isDarkMode; applyDarkMode(isDarkMode); render(); },
+    )
   );
 
   const boardWrap = document.createElement('div');
