@@ -295,19 +295,15 @@ function countPlacedNumbers(state: GameState): Record<number, number> {
   return counts;
 }
 
-// Feature 4: collect cells that belong to rows/columns of every placed highlightedNumber
+// Feature 4: collect all cells whose value matches the currently highlighted number
 function getCrossHighlightCells(state: GameState): Set<string> {
   const set = new Set<string>();
   const num = state.highlightedNumber;
   if (!num) return set;
   for (let r = 0; r < 9; r++)
     for (let c = 0; c < 9; c++)
-      if (state.userGrid[r][c] === num) {
-        for (let i = 0; i < 9; i++) {
-          set.add(`${r},${i}`);
-          set.add(`${i},${c}`);
-        }
-      }
+      if (state.userGrid[r][c] === num)
+        set.add(`${r},${c}`);
   return set;
 }
 
