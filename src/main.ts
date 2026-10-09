@@ -22,6 +22,7 @@ interface GameState {
   timerSeconds: number;
   isComplete: boolean;
   history: HistoryEntry[];
+  pencilFillUsed: boolean;
 }
 
 // ─── Puzzle Generation ────────────────────────────────────────────────────────
@@ -126,6 +127,7 @@ function initGame(difficulty: Difficulty): GameState {
     timerSeconds: 0,
     isComplete: false,
     history: [],
+    pencilFillUsed: false,
   };
 }
 
@@ -223,6 +225,31 @@ function togglePencilMark(state: GameState, row: number, col: number, value: num
     pencilMarks: { ...state.pencilMarks, [key]: marks },
     history: [...state.history, entry],
   };
+}
+
+function fillPencilMarks(state: GameState): GameState {
+  if (state.pencilFillUsed || state.difficulty === 'easy') return state;
+  const valueAt = (r: number, c: number) => state.puzzle[r][c] || state.userGrid[r][c];
+
+  const entry = snapshotHistory(state);
+  const pencilMarks: Record<string, Set<number>> = {};
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (valueAt(row, col) !== 0) continue;
+
+      const marks = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      const boxRow = Math.floor(row / 3) * 3;
+      const boxCol = Math.floor(col / 3) * 3;
+      for (let i = 0; i < 9; i++) {
+        marks.delete(valueAt(row, i));
+        marks.delete(valueAt(i, col));
+        marks.delete(valueAt(boxRow + Math.floor(i / 3), boxCol + (i % 3)));
+      }
+      pencilMarks[`${row},${col}`] = marks;
+    }
+  }
+
+  return { ...state, pencilMarks, history: [...state.history, entry], pencilFillUsed: true };
 }
 
 function toggleInputMode(state: GameState): GameState {
@@ -402,6 +429,7 @@ function renderControls(
   onErase: () => void,
   onTogglePencil: () => void,
   onUndo: () => void,
+  onFillPencil: () => void,
 ): HTMLElement {
   const counts = countPlacedNumbers(state);
 
@@ -461,6 +489,21 @@ function renderControls(
   row.appendChild(eraseBtn);
   row.appendChild(undoBtn);
   wrap.appendChild(row);
+
+  if (state.difficulty !== 'easy') {
+    const canFill = !state.pencilFillUsed;
+    const fillBtn = document.createElement('button');
+    fillBtn.textContent = 'Fill Pencil Marks';
+    fillBtn.disabled = !canFill;
+    fillBtn.className = [
+      'w-full rounded py-2 font-medium text-sm border shadow-sm transition-colors',
+      canFill
+        ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-yellow-50 dark:active:bg-yellow-950'
+        : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-300 dark:text-gray-600 cursor-not-allowed',
+    ].join(' ');
+    if (canFill) fillBtn.addEventListener('click', onFillPencil);
+    wrap.appendChild(fillBtn);
+  }
 
   return wrap;
 }
@@ -664,6 +707,7 @@ function render(): void {
       () => { gameState = eraseCell(gameState); render(); },
       () => { gameState = toggleInputMode(gameState); render(); },
       () => { gameState = undoMove(gameState); render(); },
+      () => { gameState = fillPencilMarks(gameState); render(); },
     )
   );
   page.appendChild(controlsWrap);
