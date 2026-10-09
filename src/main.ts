@@ -516,7 +516,6 @@ function renderHeader(
   state: GameState,
   bestTime: number | null,
   isDark: boolean,
-  onNewGame: () => void,
   onDifficulty: (d: Difficulty) => void,
   onToggleDark: () => void,
 ): HTMLElement {
@@ -572,11 +571,6 @@ function renderHeader(
   timerWrap.appendChild(timerLabel);
   timerWrap.appendChild(timerVal);
 
-  const newGameBtn = document.createElement('button');
-  newGameBtn.textContent = 'New Game';
-  newGameBtn.className = 'px-3 py-1.5 rounded text-sm font-semibold border transition-colors bg-green-600 text-white border-green-700 hover:bg-green-700 active:bg-green-800';
-  newGameBtn.addEventListener('click', onNewGame);
-
   const bestWrap = document.createElement('div');
   bestWrap.className = 'flex flex-col items-center';
   const bestLabel = document.createElement('span');
@@ -589,7 +583,6 @@ function renderHeader(
   bestWrap.appendChild(bestVal);
 
   statsRow.appendChild(timerWrap);
-  statsRow.appendChild(newGameBtn);
   statsRow.appendChild(bestWrap);
   wrap.appendChild(statsRow);
 
@@ -684,7 +677,6 @@ function render(): void {
       gameState,
       bestTimes[gameState.difficulty],
       isDarkMode,
-      () => startGame(gameState.difficulty),
       d => startGame(d),
       () => { isDarkMode = !isDarkMode; applyDarkMode(isDarkMode); render(); },
     )
