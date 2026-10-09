@@ -1,3 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Prevent double-tap zoom on iOS while keeping pinch-zoom */
+html {
+  touch-action: manipulation;
+}
