@@ -423,6 +423,22 @@ function renderBoard(
   container.appendChild(grid);
 }
 
+// Sliding a finger across the number row adds a pencil mark for each digit crossed
+let swipe: { lastDigit: number; onNumber: (n: number) => void; enabled: boolean } | null = null;
+
+window.addEventListener('pointermove', e => {
+  if (!swipe?.enabled) return;
+  const btn = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLButtonElement>('button[data-digit]');
+  if (!btn || btn.disabled) return;
+  const digit = Number(btn.dataset.digit);
+  if (digit === swipe.lastDigit) return;
+  swipe.lastDigit = digit;
+  swipe.onNumber(digit);
+});
+const endSwipe = () => { swipe = null; };
+window.addEventListener('pointerup', endSwipe);
+window.addEventListener('pointercancel', endSwipe);
+
 function renderControls(
   state: GameState,
   onNumber: (n: number) => void,
@@ -450,9 +466,22 @@ function renderControls(
         ? 'bg-gray-100 dark:bg-slate-700 text-gray-300 dark:text-slate-600 border-gray-200 dark:border-slate-600 cursor-not-allowed'
         : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 active:bg-blue-100 dark:active:bg-blue-900',
     ].join(' ');
-    if (!fullyPlaced) btn.addEventListener('click', () => onNumber(n));
+    btn.dataset.digit = String(n);
+    if (!fullyPlaced) {
+      btn.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        // Release implicit touch capture so moves target whatever is under the finger,
+        // even after render() replaces this button.
+        btn.releasePointerCapture(e.pointerId);
+        swipe = { lastDigit: n, onNumber, enabled: state.inputMode === 'pencil' };
+        onNumber(n);
+      });
+      // Keyboard activation only; pointer input is handled by pointerdown
+      btn.addEventListener('click', e => { if (e.detail === 0) onNumber(n); });
+    }
     numGrid.appendChild(btn);
   }
+  numGrid.style.touchAction = 'none';
   wrap.appendChild(numGrid);
 
   const row = document.createElement('div');
