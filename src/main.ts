@@ -163,21 +163,20 @@ function enterOrHighlight(state: GameState, value: number): GameState {
   const pencilMarks = { ...state.pencilMarks };
   delete pencilMarks[`${row},${col}`];
 
-  // Clear pencil marks of 'value' from the same row and column
+  // Clear pencil marks of 'value' from the same row, column and box
+  const boxRow = Math.floor(row / 3) * 3;
+  const boxCol = Math.floor(col / 3) * 3;
   for (let i = 0; i < 9; i++) {
     const rowKey = `${row},${i}`;
-    if (pencilMarks[rowKey]?.has(value)) {
-      const next = new Set(pencilMarks[rowKey]);
-      next.delete(value);
-      if (next.size === 0) delete pencilMarks[rowKey];
-      else pencilMarks[rowKey] = next;
-    }
     const colKey = `${i},${col}`;
-    if (pencilMarks[colKey]?.has(value)) {
-      const next = new Set(pencilMarks[colKey]);
-      next.delete(value);
-      if (next.size === 0) delete pencilMarks[colKey];
-      else pencilMarks[colKey] = next;
+    const boxKey = `${boxRow + Math.floor(i / 3)},${boxCol + (i % 3)}`;
+    for (const key of [rowKey, colKey, boxKey]) {
+      if (pencilMarks[key]?.has(value)) {
+        const next = new Set(pencilMarks[key]);
+        next.delete(value);
+        if (next.size === 0) delete pencilMarks[key];
+        else pencilMarks[key] = next;
+      }
     }
   }
 
