@@ -359,7 +359,7 @@ function renderBoard(
   const crossHighlight = getCrossHighlightCells(state);
 
   const grid = document.createElement('div');
-  grid.className = 'grid grid-cols-9 border-2 border-gray-800 dark:border-gray-400 w-full aspect-square select-none';
+  grid.className = 'grid grid-cols-9 border-2 border-gray-800 dark:border-slate-500 w-full aspect-square select-none';
 
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
@@ -373,17 +373,17 @@ function renderBoard(
       const marks = state.pencilMarks[`${r},${c}`];
 
       const borderB = (r + 1) % 3 === 0 && r !== 8
-        ? 'border-b-2 border-b-gray-800 dark:border-b-gray-400'
-        : 'border-b border-b-gray-300 dark:border-b-gray-600';
+        ? 'border-b-2 border-b-gray-800 dark:border-b-slate-500'
+        : 'border-b border-b-gray-300 dark:border-b-slate-700';
       const borderR = (c + 1) % 3 === 0 && c !== 8
-        ? 'border-r-2 border-r-gray-800 dark:border-r-gray-400'
-        : 'border-r border-r-gray-300 dark:border-r-gray-600';
+        ? 'border-r-2 border-r-gray-800 dark:border-r-slate-500'
+        : 'border-r border-r-gray-300 dark:border-r-slate-700';
 
-      let bg = 'bg-white dark:bg-gray-800';
-      if (isSelected) bg = 'bg-blue-300 dark:bg-blue-700';
-      else if (isSameRowCol) bg = 'bg-blue-100 dark:bg-blue-900';
-      else if (isCrossHighlight) bg = 'bg-amber-100 dark:bg-amber-900';
-      else if (isGiven) bg = 'bg-gray-50 dark:bg-gray-700';
+      let bg = 'bg-white dark:bg-slate-800';
+      if (isSelected) bg = 'bg-blue-300 dark:bg-sky-800';
+      else if (isSameRowCol) bg = 'bg-blue-100 dark:bg-sky-950';
+      else if (isCrossHighlight) bg = 'bg-amber-100 dark:bg-amber-950';
+      else if (isGiven) bg = 'bg-gray-50 dark:bg-slate-700/50';
 
       cell.className = [
         'flex items-center justify-center relative cursor-pointer overflow-hidden',
@@ -395,7 +395,7 @@ function renderBoard(
         const span = document.createElement('span');
         span.textContent = String(value);
         const colorClass = isGiven
-          ? 'text-gray-900 dark:text-gray-100 font-bold'
+          ? 'text-gray-900 dark:text-slate-200 font-bold'
           : isConflict
           ? 'text-red-600 dark:text-red-400 font-semibold'
           : 'text-blue-700 dark:text-blue-400 font-semibold';
@@ -407,7 +407,7 @@ function renderBoard(
         marksDiv.className = 'grid grid-cols-3 w-full h-full p-px gap-0';
         for (let i = 1; i <= 9; i++) {
           const mark = document.createElement('span');
-          mark.className = 'flex items-center justify-center text-gray-500 dark:text-gray-400 leading-none';
+          mark.className = 'flex items-center justify-center text-gray-500 dark:text-slate-400 leading-none';
           mark.style.fontSize = '0.45em';
           mark.textContent = marks.has(i) ? String(i) : '';
           marksDiv.appendChild(mark);
@@ -447,8 +447,8 @@ function renderControls(
     btn.className = [
       'flex items-center justify-center rounded border shadow-sm font-semibold text-lg h-10 sm:h-12 transition-colors',
       fullyPlaced
-        ? 'bg-gray-100 dark:bg-gray-700 text-gray-300 dark:text-gray-600 border-gray-200 dark:border-gray-600 cursor-not-allowed'
-        : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-blue-100 dark:active:bg-blue-900',
+        ? 'bg-gray-100 dark:bg-slate-700 text-gray-300 dark:text-slate-600 border-gray-200 dark:border-slate-600 cursor-not-allowed'
+        : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 active:bg-blue-100 dark:active:bg-blue-900',
     ].join(' ');
     if (!fullyPlaced) btn.addEventListener('click', () => onNumber(n));
     numGrid.appendChild(btn);
@@ -464,13 +464,13 @@ function renderControls(
     'flex-1 rounded py-2 font-medium text-sm border shadow-sm transition-colors',
     state.inputMode === 'pencil'
       ? 'bg-yellow-300 dark:bg-yellow-700 border-yellow-500 dark:border-yellow-600 text-yellow-900 dark:text-yellow-100'
-      : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700',
+      : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700',
   ].join(' ');
   pencilBtn.addEventListener('click', onTogglePencil);
 
   const eraseBtn = document.createElement('button');
   eraseBtn.textContent = 'Erase';
-  eraseBtn.className = 'flex-1 rounded py-2 font-medium text-sm border shadow-sm transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-red-50 dark:active:bg-red-950';
+  eraseBtn.className = 'flex-1 rounded py-2 font-medium text-sm border shadow-sm transition-colors bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 active:bg-red-50 dark:active:bg-red-950';
   eraseBtn.addEventListener('click', onErase);
 
   const canUndo = state.history.length > 0;
@@ -480,8 +480,8 @@ function renderControls(
   undoBtn.className = [
     'flex-1 rounded py-2 font-medium text-sm border shadow-sm transition-colors',
     canUndo
-      ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-orange-50 dark:active:bg-orange-950'
-      : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-300 dark:text-gray-600 cursor-not-allowed',
+      ? 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 active:bg-orange-50 dark:active:bg-orange-950'
+      : 'bg-gray-100 dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-300 dark:text-slate-600 cursor-not-allowed',
   ].join(' ');
   if (canUndo) undoBtn.addEventListener('click', onUndo);
 
@@ -498,8 +498,8 @@ function renderControls(
     fillBtn.className = [
       'w-full rounded py-2 font-medium text-sm border shadow-sm transition-colors',
       canFill
-        ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-yellow-50 dark:active:bg-yellow-950'
-        : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-300 dark:text-gray-600 cursor-not-allowed',
+        ? 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 active:bg-yellow-50 dark:active:bg-yellow-950'
+        : 'bg-gray-100 dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-300 dark:text-slate-600 cursor-not-allowed',
     ].join(' ');
     if (canFill) fillBtn.addEventListener('click', onFillPencil);
     wrap.appendChild(fillBtn);
@@ -528,12 +528,12 @@ function renderHeader(
 
   const title = document.createElement('h1');
   title.textContent = 'Sudoku';
-  title.className = 'text-2xl font-bold text-gray-800 dark:text-gray-100 tracking-tight';
+  title.className = 'text-2xl font-bold text-gray-800 dark:text-slate-200 tracking-tight';
 
   const darkBtn = document.createElement('button');
   darkBtn.textContent = isDark ? '☀️' : '🌙';
   darkBtn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
-  darkBtn.className = 'absolute right-0 text-xl p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors';
+  darkBtn.className = 'absolute right-0 text-xl p-1 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors';
   darkBtn.addEventListener('click', onToggleDark);
 
   titleRow.appendChild(title);
@@ -549,7 +549,7 @@ function renderHeader(
       'flex-1 py-1.5 rounded text-sm font-semibold border transition-colors',
       d === state.difficulty
         ? 'bg-blue-600 text-white border-blue-700'
-        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700',
+        : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700',
     ].join(' ');
     btn.addEventListener('click', () => { if (d !== state.difficulty) onDifficulty(d); });
     diffRow.appendChild(btn);
@@ -563,10 +563,10 @@ function renderHeader(
   timerWrap.className = 'flex flex-col items-center';
   const timerLabel = document.createElement('span');
   timerLabel.textContent = 'Time';
-  timerLabel.className = 'text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide';
+  timerLabel.className = 'text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide';
   const timerVal = document.createElement('span');
   timerVal.textContent = formatTime(state.timerSeconds);
-  timerVal.className = 'text-xl font-mono font-bold text-gray-800 dark:text-gray-100';
+  timerVal.className = 'text-xl font-mono font-bold text-gray-800 dark:text-slate-200';
   timerVal.dataset.timer = '';
   timerWrap.appendChild(timerLabel);
   timerWrap.appendChild(timerVal);
@@ -575,10 +575,10 @@ function renderHeader(
   bestWrap.className = 'flex flex-col items-center';
   const bestLabel = document.createElement('span');
   bestLabel.textContent = 'Best';
-  bestLabel.className = 'text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide';
+  bestLabel.className = 'text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide';
   const bestVal = document.createElement('span');
   bestVal.textContent = bestTime === null ? '--:--' : formatTime(bestTime);
-  bestVal.className = 'text-xl font-mono font-bold text-gray-400 dark:text-gray-500';
+  bestVal.className = 'text-xl font-mono font-bold text-gray-400 dark:text-slate-500';
   bestWrap.appendChild(bestLabel);
   bestWrap.appendChild(bestVal);
 
@@ -598,7 +598,7 @@ function renderCompletionModal(
   overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
 
   const card = document.createElement('div');
-  card.className = 'bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 mx-4 max-w-sm w-full';
+  card.className = 'bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 mx-4 max-w-sm w-full';
 
   const emoji = document.createElement('div');
   emoji.textContent = '🎉';
@@ -606,11 +606,11 @@ function renderCompletionModal(
 
   const heading = document.createElement('h2');
   heading.textContent = 'Puzzle Solved!';
-  heading.className = 'text-2xl font-bold text-gray-800 dark:text-gray-100';
+  heading.className = 'text-2xl font-bold text-gray-800 dark:text-slate-200';
 
   const timeP = document.createElement('p');
   timeP.textContent = `Your time: ${formatTime(seconds)}`;
-  timeP.className = 'text-lg font-mono text-gray-600 dark:text-gray-300';
+  timeP.className = 'text-lg font-mono text-gray-600 dark:text-slate-300';
 
   const bestP = document.createElement('p');
   bestP.textContent = isNewBest ? '🏆 New best time!' : '';
@@ -670,7 +670,7 @@ function render(): void {
   appEl.innerHTML = '';
 
   const page = document.createElement('div');
-  page.className = 'min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-start px-4 py-4 gap-4';
+  page.className = 'min-h-screen bg-gray-100 dark:bg-slate-900 flex flex-col items-center justify-start px-4 py-4 gap-4';
 
   page.appendChild(
     renderHeader(
