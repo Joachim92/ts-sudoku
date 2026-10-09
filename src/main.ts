@@ -346,11 +346,31 @@ function applyDarkMode(dark: boolean): void {
   localStorage.setItem(DARK_MODE_KEY, String(dark));
 }
 
+// ─── Symbol Set ───────────────────────────────────────────────────────────────
+
+type SymbolSet = 'numbers' | 'dogs';
+
+const SYMBOL_SET_KEY = 'sudoku-symbol-set';
+const DOG_SYMBOLS = ['🐶', '🐕', '🐩', '🦮', '🐕‍🦺', '🌭', '🐾', '🦴', '🐺']; // index = value - 1
+
+function loadSymbolSet(): SymbolSet {
+  return localStorage.getItem(SYMBOL_SET_KEY) === 'dogs' ? 'dogs' : 'numbers';
+}
+
+function saveSymbolSet(set: SymbolSet): void {
+  localStorage.setItem(SYMBOL_SET_KEY, set);
+}
+
+function symbolFor(value: number, set: SymbolSet): string {
+  return set === 'dogs' ? DOG_SYMBOLS[value - 1] : String(value);
+}
+
 // ─── Rendering ────────────────────────────────────────────────────────────────
 
 function renderBoard(
   state: GameState,
   container: HTMLElement,
+  symbolSet: SymbolSet,
   onCellClick: (r: number, c: number) => void,
 ): void {
   container.innerHTML = '';
@@ -388,19 +408,21 @@ function renderBoard(
       cell.className = [
         'flex items-center justify-center relative cursor-pointer overflow-hidden',
         borderB, borderR, bg,
+        symbolSet === 'dogs' && isConflict && value !== 0 ? 'ring-2 ring-red-500 ring-inset' : '',
         'transition-colors',
       ].join(' ');
 
       if (value !== 0) {
         const span = document.createElement('span');
-        span.textContent = String(value);
+        span.textContent = symbolFor(value, symbolSet);
         const colorClass = isGiven
           ? 'text-gray-900 dark:text-slate-200 font-bold'
           : isConflict
           ? 'text-red-600 dark:text-red-400 font-semibold'
           : 'text-blue-700 dark:text-blue-400 font-semibold';
         // Numbers sized to nearly fill the cell height
-        span.className = `${colorClass} leading-none text-[min(9vw,3rem)]`;
+        const sizeClass = symbolSet === 'dogs' ? 'text-[min(7vw,2.25rem)]' : 'text-[min(9vw,3rem)]';
+        span.className = `${colorClass} leading-none ${sizeClass}`;
         cell.appendChild(span);
       } else if (marks && marks.size > 0) {
         const marksDiv = document.createElement('div');
@@ -408,8 +430,8 @@ function renderBoard(
         for (let i = 1; i <= 9; i++) {
           const mark = document.createElement('span');
           mark.className = 'flex items-center justify-center text-gray-500 dark:text-slate-400 leading-none';
-          mark.style.fontSize = '0.45em';
-          mark.textContent = marks.has(i) ? String(i) : '';
+          mark.style.fontSize = symbolSet === 'dogs' ? '0.35em' : '0.45em';
+          mark.textContent = marks.has(i) ? symbolFor(i, symbolSet) : '';
           marksDiv.appendChild(mark);
         }
         cell.appendChild(marksDiv);
@@ -441,6 +463,7 @@ window.addEventListener('pointercancel', endSwipe);
 
 function renderControls(
   state: GameState,
+  symbolSet: SymbolSet,
   onNumber: (n: number) => void,
   onErase: () => void,
   onTogglePencil: () => void,
@@ -458,7 +481,7 @@ function renderControls(
   for (let n = 1; n <= 9; n++) {
     const fullyPlaced = (counts[n] ?? 0) >= 9;
     const btn = document.createElement('button');
-    btn.textContent = String(n);
+    btn.textContent = symbolFor(n, symbolSet);
     btn.disabled = fullyPlaced;
     btn.className = [
       'flex items-center justify-center rounded border shadow-sm font-semibold text-lg h-10 sm:h-12 transition-colors',
@@ -547,6 +570,8 @@ function renderHeader(
   isDark: boolean,
   onDifficulty: (d: Difficulty) => void,
   onToggleDark: () => void,
+  symbolSet: SymbolSet,
+  onToggleSymbols: () => void,
 ): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'flex flex-col gap-3 w-full';
@@ -567,6 +592,13 @@ function renderHeader(
 
   titleRow.appendChild(title);
   titleRow.appendChild(darkBtn);
+
+  const symbolsBtn = document.createElement('button');
+  symbolsBtn.textContent = symbolSet === 'dogs' ? '🔢' : '🐶';
+  symbolsBtn.title = symbolSet === 'dogs' ? 'Switch to numbers' : 'Switch to dogs';
+  symbolsBtn.className = 'absolute left-0 text-xl p-1 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors';
+  symbolsBtn.addEventListener('click', onToggleSymbols);
+  titleRow.appendChild(symbolsBtn);
   wrap.appendChild(titleRow);
 
   const diffRow = document.createElement('div');
@@ -692,6 +724,7 @@ let gameState = initGame('easy');
 let bestTimes = loadBestTimes();
 let stopTimer: (() => void) | null = null;
 let isDarkMode = loadDarkMode();
+let symbolSet = loadSymbolSet();
 
 applyDarkMode(isDarkMode);
 
@@ -708,12 +741,14 @@ function render(): void {
       isDarkMode,
       d => startGame(d),
       () => { isDarkMode = !isDarkMode; applyDarkMode(isDarkMode); render(); },
+      symbolSet,
+      () => { symbolSet = symbolSet === 'dogs' ? 'numbers' : 'dogs'; saveSymbolSet(symbolSet); render(); },
     )
   );
 
   const boardWrap = document.createElement('div');
   boardWrap.className = 'w-full max-w-sm sm:max-w-md';
-  renderBoard(gameState, boardWrap, (r, c) => {
+  renderBoard(gameState, boardWrap, symbolSet, (r, c) => {
     gameState = selectCell(gameState, r, c);
     render();
   });
@@ -724,6 +759,7 @@ function render(): void {
   controlsWrap.appendChild(
     renderControls(
       gameState,
+      symbolSet,
       n => { gameState = enterOrHighlight(gameState, n); afterMove(); },
       () => { gameState = eraseCell(gameState); render(); },
       () => { gameState = toggleInputMode(gameState); render(); },
